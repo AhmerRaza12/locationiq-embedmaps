@@ -61,17 +61,25 @@ def get_driver():
     return driver
 
 
-def scrape_embed_maps(driver,lat,lon):
-    driver.get(f"https://www.google.com/maps/place//@{lat},{lon},17z")
-    time.sleep(1)
-    share_button = driver.find_element(By.XPATH, "//button[@aria-label='Share ']")
-    share_button.click()
-    time.sleep(1)
-    embed_button = driver.find_element(By.XPATH, "//button[.='Embed a map']")
-    embed_button.click()
-    time.sleep(1)
-    input_box=driver.find_element(By.XPATH, "//input[@jsaction='pane.embedMap.clickInput']")
-    embed_code=input_box.get_attribute("value")
+def scrape_embed_maps(driver,lat,lon,name,confirmed_city_name,county_name,state_name):
+    try:
+        driver.get(f"https://www.google.com/maps/place/{name},{county_name},{state_name}/,17z")
+        time.sleep(1)
+        share_button=WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[@data-value='Share']")))
+        share_button.click()
+        embed_button=WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[.='Embed a map']")))
+        driver.execute_script("arguments[0].click();", embed_button)
+        input_box=WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//input[@jsaction='pane.embedMap.clickInput']")))
+        input_box=driver.find_element(By.XPATH, "//input[@jsaction='pane.embedMap.clickInput']")
+        try:
+            embed_code=input_box.get_attribute("value")
+        except:
+            embed_code=""
+    except Exception as e:
+        print(f"Error occured in extracting embed code for {name},{county_name},{state_name} with error {e}")
+        embed_code=""
+        pass
+        
     return embed_code
 
 def get_locationiq_data(lat,lon):
@@ -106,14 +114,13 @@ if __name__ == "__main__":
     db=connect_to_db()
     db_data,cursor_retrieve = read_data_from_db(db)
     driver=get_driver()
-    for i in range(10,len(db_data)):
+    for i in range(1720,len(db_data)):
         city_name = db_data[i][1]  
         lon = db_data[i][2]        
         lat = db_data[i][3]
-        embed_code = scrape_embed_maps(driver,lat,lon)
         confirmed_city_name,county_name,state_name = get_locationiq_data(lat,lon)
+        embed_code = scrape_embed_maps(driver,lat,lon,name=city_name,confirmed_city_name=confirmed_city_name,state_name=state_name,county_name=county_name)
         update_db(db,city_name,lat,lon,confirmed_city_name,county_name,state_name,embed_code)
-        print(f"Updated row {i+1}")
 
     
     

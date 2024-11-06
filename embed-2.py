@@ -118,7 +118,7 @@ if __name__ == "__main__":
     db=connect_to_db()
     db_data,cursor_retrieve = read_data_from_db(db)
     driver=get_driver()
-    for i in range(6257,10000):
+    for i in range(9342,10000):
         city_name = db_data[i][1]  
         lon = db_data[i][2]        
         lat = db_data[i][3]
